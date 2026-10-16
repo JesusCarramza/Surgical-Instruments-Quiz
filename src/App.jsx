@@ -1,122 +1,119 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState, useCallback } from 'react';
+import WelcomeScreen from './components/WelcomeScreen';
+import QuizScreen from './components/QuizScreen';
+import ResultsScreen from './components/ResultsScreen';
+import quizData from './data/quizData';
+import './App.css';
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+/**
+ * Shuffles an array using Fisher-Yates algorithm
+ */
+function shuffleArray(array) {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
 }
 
-export default App
+function App() {
+  const [screen, setScreen] = useState('welcome'); // 'welcome' | 'quiz' | 'results'
+  const [questions, setQuestions] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [score, setScore] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [isAnswered, setIsAnswered] = useState(false);
+  const [answers, setAnswers] = useState([]); // track all answers for review
+
+  const startQuiz = useCallback(() => {
+    const shuffled = shuffleArray(quizData).map((q) => ({
+      ...q,
+      options: shuffleArray(q.options),
+    }));
+    setQuestions(shuffled);
+    setCurrentIndex(0);
+    setScore(0);
+    setSelectedAnswer(null);
+    setIsAnswered(false);
+    setAnswers([]);
+    setScreen('quiz');
+  }, []);
+
+  const handleAnswer = useCallback(
+    (answer) => {
+      if (isAnswered) return;
+      setSelectedAnswer(answer);
+      setIsAnswered(true);
+
+      const isCorrect = answer === questions[currentIndex].correctAnswer;
+      if (isCorrect) {
+        setScore((prev) => prev + 1);
+      }
+
+      setAnswers((prev) => [
+        ...prev,
+        {
+          question: questions[currentIndex],
+          selected: answer,
+          isCorrect,
+        },
+      ]);
+    },
+    [isAnswered, questions, currentIndex]
+  );
+
+  const handleNext = useCallback(() => {
+    if (currentIndex + 1 < questions.length) {
+      setCurrentIndex((prev) => prev + 1);
+      setSelectedAnswer(null);
+      setIsAnswered(false);
+    } else {
+      setScreen('results');
+    }
+  }, [currentIndex, questions.length]);
+
+  const goHome = useCallback(() => {
+    setScreen('welcome');
+  }, []);
+
+  return (
+    <div className="app">
+      {/* Background ambient effects */}
+      <div className="app__bg-effects">
+        <div className="app__bg-orb app__bg-orb--1" />
+        <div className="app__bg-orb app__bg-orb--2" />
+        <div className="app__bg-orb app__bg-orb--3" />
+      </div>
+
+      <div className="app__content">
+        {screen === 'welcome' && <WelcomeScreen onStart={startQuiz} />}
+
+        {screen === 'quiz' && questions.length > 0 && (
+          <QuizScreen
+            question={questions[currentIndex]}
+            questionNumber={currentIndex + 1}
+            totalQuestions={questions.length}
+            score={score}
+            selectedAnswer={selectedAnswer}
+            isAnswered={isAnswered}
+            onAnswer={handleAnswer}
+            onNext={handleNext}
+          />
+        )}
+
+        {screen === 'results' && (
+          <ResultsScreen
+            score={score}
+            total={questions.length}
+            answers={answers}
+            onRestart={startQuiz}
+            onHome={goHome}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default App;
